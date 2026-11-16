@@ -1,55 +1,25 @@
-# Aishu Pro — Discord.js foundation
+# Aishu Pro — modular Discord.js bot
 
-A JavaScript/CommonJS starter for a modular Discord bot using Node.js 20+, discord.js v14, and optional MongoDB persistence. It includes a command/event loader, slash and prefix command routing, Components V2 response helpers, cooldowns, owner checks, guild command configuration, and slash-command deployment.
+A JavaScript/CommonJS starter using Node.js 20+, discord.js v14, Mongoose, and Components V2. Current modules include moderation and privacy-conscious audit logs, owner-only safe tools, opt-in link/invite/spam filters, an economy/XP foundation, tickets, temporary voice rooms, and basic URL-based music playback.
 
-This repository is a working foundation, not a claim that every feature in an expansive feature wishlist (such as thousands of commands or hundreds of games) is already implemented. Feature systems should be added and tested as separate modules.
-
-## Requirements
-
-- Node.js 20 or newer
-- A Discord application and bot
-- MongoDB, optional for the starter modules
+This is not a claim of 1,000 or 2,000 commands, nor a drop-in replacement for Owo, Wick, or Bleed. The hunt feature is an original, simple text game; the security filters are opt-in per server. Only use in servers where the bot is invited and authorized. Features enforce configured bot-owner checks and server permissions; there is no permission bypass or global message collection.
 
 ## Setup
 
-1. Clone the repository and install dependencies with `npm install`.
-2. Copy `.env.example` to `.env` and fill in the bot token, application ID, prefix, and owner IDs. `OWNER_IDS` accepts comma-separated Discord user IDs. Keep `.env` private; it is ignored by git.
-3. In the Discord Developer Portal, enable **Message Content Intent** if you want prefix commands. Enable only the intents and permissions your enabled features require.
-4. Invite the bot with `bot` and `applications.commands` scopes and the least-privilege permissions needed.
-5. Run `npm run deploy:commands` to publish slash commands, then `npm start`.
+1. Install Node.js 20+ and MongoDB. Clone the repo and run `npm install`.
+2. Copy `.env.example` to `.env`. Add bot token, application ID, MongoDB URI, and `OWNER_IDS`. The sample owner ID is an example default; verify/change it to your intended owner before deployment. Never commit `.env`.
+3. Enable Message Content Intent only if you need prefix commands or opted-in server filters. Invite with `bot` and `applications.commands` scopes and least-privilege permissions.
+4. Run `npm run deploy:commands`, then `npm start`.
 
-If `MONGODB_URI` is blank, the bot starts without MongoDB; database-dependent guild settings use defaults and are not persistent. Set a MongoDB connection string to enable persistence.
+## Added systems
 
-## Configuration
+- **Owner:** `ownerpanel`, `ownerhelp`, status, cache, database, and statistics commands. Owner checks use IDs from `.env`; administrative actions are bounded and audited.
+- **Original game/economy:** `hunt` gives a randomized small coin reward; `balance`, `daily`, `work`, and leaderboards are present.
+- **Security:** `/security` toggles per-guild anti-invite, anti-link, and basic message-burst filtering. It requires MongoDB to persist settings and Manage Messages to remove messages. Enable deliberately and tell server members what is moderated.
+- **Music:** `/play <YouTube URL>`, `/skip`, and `/stop` use Discord voice and `play-dl`. Playback source availability can change; comply with source platform terms and copyright law. The current music queue is in memory and does not persist across restarts.
 
-See `.env.example`. The bot name, prefix, token, application ID, owners, language, UI color, support link, website, and status are read from environment variables. Never commit `.env` or put secrets in source code.
+## Limits
 
-## Included starter commands
+The owner system is not an unlimited superuser: Discord role hierarchy, bot permissions, server consent, and API limitations still apply. The basic anti-spam filter is process-memory based and intended as a starter, not a full anti-raid service. No network/security offensive tooling, arbitrary code execution, shell commands, or token handling commands are included.
 
-- Prefix and slash: `help`, `ping`, `botinfo`
-- Owner-only: `health`
-- Guild-specific prefix and command disabling are represented in the MongoDB guild configuration model.
-
-The `health` command is read-only. This starter intentionally does not expose remote code evaluation, shell/terminal execution, permission bypasses, or broad message collection. Do not enable privileged intents or collect message content beyond what your server features need and have permission to use.
-
-## Components V2
-
-Responses use the reusable `src/utils/ui.js` Components V2 helper (no EmbedBuilder). Any future interactive component must have a stable, namespaced custom ID and an authorization check in its handler. Avoid placing secrets or personal data in custom IDs.
-
-## Deployment
-
-### Generic host / Pterodactyl / PlumeHost
-
-Create a Node.js 20+ application, upload/clone the repository, install dependencies, configure environment variables in the host panel, run `npm run deploy:commands` once after command changes, and use `npm start` as the startup command. Keep the process manager's restart policy enabled. Do not upload `.env` to a public repository.
-
-### Docker
-
-Build with `docker build -t aishu-pro .`, then run with your environment supplied securely by your deployment platform (for example, `docker run --env-file .env aishu-pro`). Do not bake credentials into the image.
-
-## Adding features
-
-Place command modules beneath `src/commands/<category>/`. Export `data` (a SlashCommandBuilder), `name`, optional `aliases`, optional `ownerOnly`/`permissions`/`cooldown`, and `execute(interaction, client)` plus `executePrefix(message, args, client)` as needed. Place event modules under `src/events/`. Keep handlers small, validate all inputs, enforce least privilege, and add tests before production use.
-
-## License
-
-No license has been specified yet.
+For deployment use a private `.env` or host secret manager. `npm run deploy:commands` publishes global application commands. Restart the process after code/config updates.

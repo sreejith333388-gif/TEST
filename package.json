@@ -12,8 +12,10 @@
   },
   "engines": { "node": ">=20.0.0" },
   "dependencies": {
+    "@discordjs/voice": "^0.18.0",
     "discord.js": "^14.26.0",
     "dotenv": "^16.4.7",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "play-dl": "^1.9.7"
   }
 }
