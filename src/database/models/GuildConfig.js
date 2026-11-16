@@ -6,6 +6,10 @@ const guildConfigSchema = new Schema({
   disabledCommands: { type: [String], default: [] },
   logChannelId: { type: String, default: null },
   locale: { type: String, default: 'en' },
+  welcomeChannelId: { type: String, default: null },
+  welcomeMessage: { type: String, default: 'Welcome {user} to {guild}! We hope you enjoy your stay.' },
+  goodbyeChannelId: { type: String, default: null },
+  goodbyeMessage: { type: String, default: 'Goodbye {user}. We hope to see you again.' },
   security: {
     enabled: { type: Boolean, default: false },
     antiInvite: { type: Boolean, default: false },
