@@ -1,33 +1,45 @@
-const { Events, MessageFlags } = require('discord.js');
+const { PermissionsBitField, MessageFlags } = require('discord.js');
 const { renderPanel } = require('../utils/ui');
 const { isOwner } = require('../utils/permissions');
 const { getGuildConfig } = require('../database/guildConfig');
 const logger = require('../utils/logger');
 
 module.exports = {
-  name: Events.InteractionCreate,
+  name: 'interactionCreate',
   async execute(interaction, client) {
     if (!interaction.isChatInputCommand()) return;
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
     try {
       if (command.ownerOnly && !isOwner(interaction.user.id, client)) {
-        return interaction.reply({ components: [renderPanel(client, 'Access denied', 'This command is restricted to configured bot owners.')], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+        return reply(interaction, client, 'Access denied', 'This command is restricted to configured bot owners.');
       }
       if (interaction.guildId && await isDisabled(interaction.guildId, command.name)) {
-        return interaction.reply({ components: [renderPanel(client, 'Command unavailable', 'This command is disabled in this server.')], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+        return reply(interaction, client, 'Command unavailable', 'This command is disabled in this server.');
+      }
+      if (command.permissions && interaction.inGuild()) {
+        const required = new PermissionsBitField(command.permissions);
+        if (!interaction.memberPermissions?.has(required)) {
+          return reply(interaction, client, 'Missing permission', `You need **${required.toArray().join(', ')}** to use this command.`);
+        }
       }
       const cooldown = checkCooldown(interaction.user.id, command, client);
-      if (cooldown) return interaction.reply({ components: [renderPanel(client, 'Slow down', `Try again in ${cooldown} second(s).`)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      if (cooldown) return reply(interaction, client, 'Slow down', `Try again in ${cooldown} second(s).`);
       await command.execute(interaction, client);
     } catch (error) {
       logger.error(`Slash command ${interaction.commandName} failed`, error);
-      const payload = { components: [renderPanel(client, 'Something went wrong', 'The command failed. Please try again later.')], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
-      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
-      else await interaction.reply(payload).catch(() => {});
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ components: [renderPanel(client, 'Something went wrong', 'The command failed. Please try again later.')], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral }).catch(() => {});
+      } else {
+        await reply(interaction, client, 'Something went wrong', 'The command failed. Please try again later.');
+      }
     }
   }
 };
+
+function reply(interaction, client, title, description) {
+  return interaction.reply({ components: [renderPanel(client, title, description)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+}
 
 async function isDisabled(guildId, commandName) {
   const config = await getGuildConfig(guildId);
@@ -42,6 +54,7 @@ function checkCooldown(userId, command, client) {
   const now = Date.now();
   if (expiry && expiry > now) return Math.ceil((expiry - now) / 1000);
   client.cooldowns.set(key, now + seconds * 1000);
-  setTimeout(() => client.cooldowns.delete(key), seconds * 1000).unref?.();
+  const timer = setTimeout(() => client.cooldowns.delete(key), seconds * 1000);
+  timer.unref?.();
   return 0;
 }
